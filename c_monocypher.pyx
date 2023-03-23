@@ -615,3 +615,44 @@ def generate_key_exchange_key_pair():
     secret = generate_key()
     public = compute_key_exchange_public_key(secret)
     return secret, public
+
+
+def elligator_map(hidden):
+    """Decodes a hidden point to a curve point on Curve25519.
+
+    :param hidden: The hidden encoding of a point on the curve.
+    :return: A Curve25519 public key.
+    """
+    point = bytes(32)
+    crypto_hidden_to_curve(point, hidden)
+    return point
+
+
+def elligator_rev(public, tweak=None):
+    """Hide the public key so that it is effectively indistinguishable from random noise.
+
+    :param public: A Curve25519 public key.
+    :return: A hidden encoding of the given point.
+    """
+    hidden = bytes(32)
+    if tweak is None:
+        tweak = secrets.token_bytes(1)
+    error = crypto_curve_to_hidden(hidden, public, int.from_bytes(tweak, 'big'))
+    if error:
+        raise ValueError("curve point is unsuitable for hiding")
+    return hidden
+
+
+def elligator_key_pair(seed=None):
+    """Generates a secret Curve25519 key and the hidden representation of its corresponding public key.
+
+    :param seed: A 32-byte random number from which to derive a key pair.
+    :return: The tuple of (hidden, secret).  secret is a Curve25519 secret key.
+        hidden is a hidden representation of the corresponding public key.
+    """
+    hidden = bytes(32)
+    secret = bytes(32)
+    if seed is None:
+        seed = secrets.token_bytes(32)
+    crypto_hidden_key_pair(hidden, secret, seed)
+    return hidden, secret
